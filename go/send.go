@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"flag"
+    "bufio"
+    "bytes"
+    "fmt"
+    "io"
+    "io/ioutil"
+    "net/http"
+    "os"
+    "flag"
 )
 
 
@@ -30,48 +30,48 @@ func main() {
     flag.Parse()
 
     if *webhook == "" {
-        panic("-webhook needed")
+        panic("--webhook needed")
     }
 
-	file, err := os.Open(*input)
-	defer file.Close()
+    file, err := os.Open(*input)
+    defer file.Close()
 
-	if err != nil {
-		panic(err)
-	}
+    if err != nil {
+        panic(err)
+    }
 
-	// Start reading from the file with a reader.
-	reader := bufio.NewReader(file)
+    // Start reading from the file with a reader.
+    reader := bufio.NewReader(file)
 
-	var line string
-	for {
-		line, err = reader.ReadString('\n')
+    var line string
+    for {
+        line, err = reader.ReadString('\n')
 
-		if err != nil {
-			break
-		}
+        if err != nil {
+            break
+        }
 
-		var payload = []byte(`{"text": "` + line + `", "username": "` + *username + `", "icon_emoji": "` + *emoji + `"}`)
+        var payload = []byte(`{"text": "` + line + `", "username": "` + *username + `", "icon_emoji": "` + *emoji + `"}`)
 
-		req, err := http.NewRequest("POST", *webhook, bytes.NewBuffer(payload))
-		req.Header.Set("Content-Type", "application/json")
+        req, err := http.NewRequest("POST", *webhook, bytes.NewBuffer(payload))
+        req.Header.Set("Content-Type", "application/json")
 
-		client := &http.Client{}
-		resp, err := client.Do(req)
+        client := &http.Client{}
+        resp, err := client.Do(req)
 
-		if err != nil {
-			panic(err)
-		}
+        if err != nil {
+            panic(err)
+        }
 
-		defer resp.Body.Close()
+        defer resp.Body.Close()
 
-		fmt.Println("response Status:", resp.Status)
-		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("response Body:", string(body))
-		fmt.Println()
-	}
+        fmt.Println("response Status:", resp.Status)
+        body, _ := ioutil.ReadAll(resp.Body)
+        fmt.Println("response Body:", string(body))
+        fmt.Println()
+    }
 
-	if err != io.EOF {
-		fmt.Printf(" > Failed!: %v\n", err)
-	}
+    if err != io.EOF {
+        fmt.Printf(" > Failed!: %v\n", err)
+    }
 }
