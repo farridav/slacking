@@ -1,6 +1,6 @@
 # Slacking playground
-A command line script that (given a webhook), reads messages from a file, and posts them to slack, written in 
-Python, Go, and SCALA
+A command line script that (given a webhook), reads messages from a file, and posts them to slack, written in
+Python3, Go, and SCALA
 
 
 ## Setup
@@ -25,7 +25,7 @@ First setup an incoming webhook in slack and grab the url, (see http://bit.ly/2E
 
 ### SCALA
     TODO
-   
+
 ### Futrue Enhancements
 
 - Add tests for Go Implementation
