@@ -6,6 +6,9 @@ import json
 from urllib.request import Request, urlopen
 
 
+HERE = os.path.dirname(__file__)
+
+
 def send_messages(cmd_args):
     """
     A Script for reading a text file of messages, and sending them to a Slack webhook
@@ -47,7 +50,7 @@ if __name__ == '__main__':
     parser.add_argument("--webhook", help="Your slack webhook url, see http://bit.ly/2EapumJ", required=True)
     parser.add_argument("--channel", help="The channel to post to", required=False)
 
-    parser.add_argument("--input", help="Path to your message file", default=os.path.join(os.getcwd(), '../', 'messages.txt'))
+    parser.add_argument("--input", help="Path to your message file", default=os.path.join(HERE, '../', 'messages.txt'))
     parser.add_argument("--username", help="The username to use", default='Mr Shipit')
     parser.add_argument("--emoji", help="Your icon emoji", default=':shipit:')
 

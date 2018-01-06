@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+
+import os
 import json
 import unittest
 from unittest.mock import Mock, patch
@@ -5,12 +8,17 @@ from unittest.mock import Mock, patch
 import send
 
 
+HERE = os.path.dirname(__file__)
+
+
 class TestSlack(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         super(TestSlack, cls).setUpClass()
-        cls.messages = open('../messages.txt').readlines()
+
+        with open(os.path.join(HERE, '../', 'messages.txt'), 'r') as f:
+            cls.messages = f.readlines()
 
     @patch.object(send, 'urlopen')
     def test_slack_sending(self, mock_open):
@@ -22,7 +30,7 @@ class TestSlack(unittest.TestCase):
 
         fake_arg = Mock(
             webhook='http://test.com',
-            input='messages.txt',
+            input=os.path.join(HERE, '../', 'messages.txt'),
             channel='channel',
             username='username',
             emoji='emoji'
