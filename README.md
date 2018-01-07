@@ -24,11 +24,12 @@ First setup an incoming webhook in slack and grab the url, (see http://bit.ly/2E
     go run send.go --webhook https://hooks.slack.com/services/XXXXX/XXXXX
 
 ### SCALA
-    TODO
+    cd scala
+    ./send.sh https://hooks.slack.com/services/XXXXX/XXXXX
 
 ### Futrue Enhancements
 
 - Add tests for Go Implementation
-- Allow Go script to run from anywhere
+- Allow Go script to run from anywhere (fix relative path lookup)
 - Add tests for SCALA Implementation
-- Implement SCALA script
+- Tidy up SCALA implementation, extend App class
