@@ -12,13 +12,11 @@ import (
 	"os"
 )
 
-type Message struct {
-	Text     string
-	Username string
-	Emoji    string
-}
+// Our swappable Http Handler type
+type HttpHandler func(req *http.Request) map[string]string
 
-func (Message) DoSend(req *http.Request) *http.Response {
+// Our production Http Handler
+func MakeRequest(req *http.Request) map[string]string {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 
@@ -26,12 +24,27 @@ func (Message) DoSend(req *http.Request) *http.Response {
 		panic(err)
 	}
 
-	return resp
+	defer resp.Body.Close()
 
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	return map[string]string{
+		"status": resp.Status,
+		"body":   string(body),
+	}
 }
 
-func SendMessage(webhook, msg, username, emoji string) (string, string) {
-	message := &Message{Text: msg, Username: username, Emoji: emoji}
+// Our Message sending utlity
+func SendMessage(sender HttpHandler, webhook string, msg string, username string, emoji string, channel string) map[string]string {
+	message := map[string]string{
+		"text":       msg,
+		"username":   username,
+		"icon_emoji": emoji,
+	}
+
+	if channel != "" {
+		message["channel"] = channel
+	}
 
 	payload, err := json.Marshal(message)
 	if err != nil {
@@ -41,13 +54,7 @@ func SendMessage(webhook, msg, username, emoji string) (string, string) {
 	req, err := http.NewRequest("POST", webhook, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp := message.DoSend(req)
-
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	return resp.Status, string(body)
+	return sender(req)
 }
 
 func main() {
@@ -55,6 +62,7 @@ func main() {
 	   A Script for reading a text file of messages, and sending them to a Slack webhook
 
 	   # Setup
+
 	   Go to https://<subdomain>.slack.com/services/B8NRSBB0V and setup an integration (grab the webhook_url)
 
 	       go run send.go --webhook '<your url from above>'
@@ -64,6 +72,7 @@ func main() {
 	input := flag.String("input", "../messages.txt", "Path to your message file")
 	username := flag.String("username", "Mr Shipit", "The username to use")
 	emoji := flag.String("emoji", ":shipit:", "Your icon emoji")
+	channel := flag.String("channel", "", "Override channel with this channel")
 
 	flag.Parse()
 
@@ -89,10 +98,10 @@ func main() {
 			break
 		}
 
-		status, body := SendMessage(*webhook, msg, *username, *emoji)
+		response := SendMessage(MakeRequest, *webhook, msg, *username, *emoji, *channel)
 
-		fmt.Println("response Status:", status)
-		fmt.Println("response Body:", body)
+		fmt.Println("response Status:", response["status"])
+		fmt.Println("response Body:", response["body"])
 	}
 
 	if err != io.EOF {
