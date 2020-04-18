@@ -1,77 +1,110 @@
 package main
 
 import (
-    "bufio"
-    "bytes"
-    "fmt"
-    "io"
-    "io/ioutil"
-    "net/http"
-    "os"
-    "flag"
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
 )
 
+// Our swappable Http Handler type
+type HttpHandler func(req *http.Request) map[string]string
+
+// Our production Http Handler
+func MakeRequest(req *http.Request) map[string]string {
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	return map[string]string{
+		"status": resp.Status,
+		"body":   string(body),
+	}
+}
+
+// Our Message sending utlity
+func SendMessage(sender HttpHandler, webhook string, msg string, username string, emoji string, channel string) map[string]string {
+	message := map[string]string{
+		"text":       msg,
+		"username":   username,
+		"icon_emoji": emoji,
+	}
+
+	if channel != "" {
+		message["channel"] = channel
+	}
+
+	payload, err := json.Marshal(message)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest("POST", webhook, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	return sender(req)
+}
 
 func main() {
-    /*
-    A Script for reading a text file of messages, and sending them to a Slack webhook
+	/*
+	   A Script for reading a text file of messages, and sending them to a Slack webhook
 
-    # Setup
-    Go to https://<subdomain>.slack.com/services/B8NRSBB0V and setup an integration (grab the webhook_url)
+	   # Setup
 
-        go run send.go --webhook '<your url from above>'
+	   Go to https://<subdomain>.slack.com/services/B8NRSBB0V and setup an integration (grab the webhook_url)
 
-    */
-    webhook := flag.String("webhook", "", "Your slack webhook url, see http://bit.ly/2EapumJ")
-    input := flag.String("channel", "../messages.txt", "Path to your message file")
-    username := flag.String("username", "Mr Shipit", "The username to use")
-    emoji := flag.String("emoji", ":shipit:", "Your icon emoji")
+	       go run send.go --webhook '<your url from above>'
 
-    flag.Parse()
+	*/
+	webhook := flag.String("webhook", "", "Your slack webhook url, see http://bit.ly/2EapumJ")
+	input := flag.String("input", "../messages.txt", "Path to your message file")
+	username := flag.String("username", "Mr Shipit", "The username to use")
+	emoji := flag.String("emoji", ":shipit:", "Your icon emoji")
+	channel := flag.String("channel", "", "Override channel with this channel")
 
-    if *webhook == "" {
-        panic("--webhook needed")
-    }
+	flag.Parse()
 
-    file, err := os.Open(*input)
-    defer file.Close()
+	if *webhook == "" {
+		panic("--webhook needed")
+	}
 
-    if err != nil {
-        panic(err)
-    }
+	file, err := os.Open(*input)
+	defer file.Close()
 
-    // Start reading from the file with a reader.
-    reader := bufio.NewReader(file)
+	if err != nil {
+		panic(err)
+	}
 
-    var line string
-    for {
-        line, err = reader.ReadString('\n')
+	// Start reading from the file with a reader.
+	reader := bufio.NewReader(file)
 
-        if err != nil {
-            break
-        }
+	var msg string
+	for {
+		msg, err = reader.ReadString('\n')
 
-        var payload = []byte(`{"text": "` + line + `", "username": "` + *username + `", "icon_emoji": "` + *emoji + `"}`)
+		if err != nil {
+			break
+		}
 
-        req, err := http.NewRequest("POST", *webhook, bytes.NewBuffer(payload))
-        req.Header.Set("Content-Type", "application/json")
+		response := SendMessage(MakeRequest, *webhook, msg, *username, *emoji, *channel)
 
-        client := &http.Client{}
-        resp, err := client.Do(req)
+		fmt.Println("response Status:", response["status"])
+		fmt.Println("response Body:", response["body"])
+	}
 
-        if err != nil {
-            panic(err)
-        }
-
-        defer resp.Body.Close()
-
-        fmt.Println("response Status:", resp.Status)
-        body, _ := ioutil.ReadAll(resp.Body)
-        fmt.Println("response Body:", string(body))
-        fmt.Println()
-    }
-
-    if err != io.EOF {
-        fmt.Printf(" > Failed!: %v\n", err)
-    }
+	if err != io.EOF {
+		fmt.Printf(" > Failed!: %v\n", err)
+	}
 }
